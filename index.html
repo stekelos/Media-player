@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meditation Sound</title>
+    <title>Meditation Sound 2.0</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@
 <body>
     <div class="container">
         <h1>Χαλαρωτικός Ήχος Διαλογισμού</h1>
-        <p>Επέλεξε συχνότητα και ξεκίνα:</p>
+        <p>Επέλεξε συχνότητα και ξεκίνα (χρειάζονται ακουστικά):</p>
         <select id="frequency">
             <option value="432">432 Hz (Ηρεμία)</option>
             <option value="4">4 Hz (Delta - Βαθύς Ύπνος)</option>
@@ -65,34 +65,68 @@
 
     <script>
         let audioContext;
-        let oscillator;
-        let gainNode;
+        let oscillatorLeft;
+        let oscillatorRight;
+        let gainNodeLeft;
+        let gainNodeRight;
+        let merger;
 
         function startSound() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                oscillator = audioContext.createOscillator();
-                gainNode = audioContext.createGain();
-
-                oscillator.type = 'sine';
-                oscillator.frequency.value = parseFloat(document.getElementById('frequency').value);
-                gainNode.gain.value = 0.1;
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
                 
-                oscillator.start();
-                
-                document.getElementById('status').innerText = `Παίζει ήχος ${oscillator.frequency.value} Hz...`;
+                // Δημιουργία δύο ταλαντωτών για binaural beats
+                oscillatorLeft = audioContext.createOscillator();
+                oscillatorRight = audioContext.createOscillator();
+                gainNodeLeft = audioContext.createGain();
+                gainNodeRight = audioContext.createGain();
+                merger = audioContext.createChannelMerger(2);
+
+                // Βασική συχνότητα (carrier) και διαφορά για binaural beats
+                const baseFreq = 100; // Ακουστή συχνότητα
+                const selectedFreq = parseFloat(document.getElementById('frequency').value);
+
+                oscillatorLeft.type = 'sine';
+                oscillatorRight.type = 'sine';
+
+                if (selectedFreq === 432) {
+                    // Καθαρός ήχος 432 Hz χωρίς binaural
+                    oscillatorLeft.frequency.value = 432;
+                    oscillatorRight.frequency.value = 432;
+                } else {
+                    // Binaural beats: διαφορά συχνοτήτων
+                    oscillatorLeft.frequency.value = baseFreq;
+                    oscillatorRight.frequency.value = baseFreq + selectedFreq;
+                }
+
+                gainNodeLeft.gain.value = 0.1;
+                gainNodeRight.gain.value = 0.1;
+
+                // Σύνδεση: αριστερός και δεξιός ήχος σε ξεχωριστά κανάλια
+                oscillatorLeft.connect(gainNodeLeft);
+                oscillatorRight.connect(gainNodeRight);
+                gainNodeLeft.connect(merger, 0, 0); // Αριστερό κανάλι
+                gainNodeRight.connect(merger, 0, 1); // Δεξί κανάλι
+                merger.connect(audioContext.destination);
+
+                oscillatorLeft.start();
+                oscillatorRight.start();
+
+                document.getElementById('status').innerText = 
+                    selectedFreq === 432 
+                    ? "Παίζει ήχος 432 Hz..."
+                    : `Παίζει binaural ${selectedFreq} Hz (100 Hz + ${100 + selectedFreq} Hz)...`;
             }
         }
 
         function stopSound() {
-            if (audioContext && oscillator) {
-                oscillator.stop();
+            if (audioContext && oscillatorLeft) {
+                oscillatorLeft.stop();
+                oscillatorRight.stop();
                 audioContext.close();
                 audioContext = null;
-                oscillator = null;
+                oscillatorLeft = null;
+                oscillatorRight = null;
                 document.getElementById('status').innerText = "Ο ήχος είναι σε παύση.";
             }
         }

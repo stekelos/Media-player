@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <title>Ταυτόχρονη Αναπαραγωγή Πολυμέσων</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        .media-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        input[type="file"] {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .media-player {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        #addMediaButton {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ταυτόχρονη Αναπαραγωγή Πολυμέσων</h1>
+    
+    <div id="mediaContainer">
+        <!-- Αρχικοί media players θα προστεθούν εδώ δυναμικά -->
+    </div>
+
+    <button id="addMediaButton">+ Προσθήκη Media Player</button>
+
+    <script>
+        // Συλλογή όλων των υποστηριζόμενων format
+        const supportedFormats = [
+            // Ήχος
+            '.mp3', '.wav', '.ogg', '.aac', '.flac', '.webm', '.m4a', '.opus', 
+            // Βίντεο 
+            '.mp4', '.webm', '.ogg', '.avi', '.mov', '.mkv', '.flv', '.wmv',
+            // Λιγότερο κοινά format
+            '.aiff', '.wma', '.m4b', '.m4p', '.3gp', '.mpeg', '.mpg'
+        ].join(',');
+
+        // Συνάρτηση δημιουργίας νέου media player
+        function createMediaPlayer(containerElement) {
+            // Δημιουργία container για τον κάθε player
+            const mediaContainer = document.createElement('div');
+            mediaContainer.className = 'media-container';
+            
+            // Δημιουργία input για επιλογή αρχείου
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = supportedFormats;
+            
+            // Δημιουργία media player
+            const mediaPlayer = document.createElement('video');
+            mediaPlayer.className = 'media-player';
+            mediaPlayer.controls = true;
+            
+            // Δημιουργία κουμπιού διαγραφής
+            const removeButton = document.createElement('button');
+            removeButton.textContent = 'Αφαίρεση Player';
+            removeButton.onclick = () => {
+                containerElement.removeChild(mediaContainer);
+            };
+
+            // Προσθήκη event listener για επιλογή αρχείου
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                mediaPlayer.src = URL.createObjectURL(file);
+                
+                // Αυτόματη επιλογή τύπου media
+                if (file.type.startsWith('video/')) {
+                    mediaPlayer.style.maxHeight = '400px';
+                } else {
+                    // Για ήχο, προσθήκη εικόνας poster
+                    mediaPlayer.style.maxHeight = '100px';
+                    const audioIcon = document.createElement('img');
+                    audioIcon.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+                    audioIcon.style.width = '100px';
+                    audioIcon.style.height = '100px';
+                    mediaContainer.insertBefore(audioIcon, mediaPlayer);
+                }
+            });
+
+            // Προσθήκη στοιχείων στο container
+            mediaContainer.appendChild(fileInput);
+            mediaContainer.appendChild(mediaPlayer);
+            mediaContainer.appendChild(removeButton);
+
+            return mediaContainer;
+        }
+
+        // Αρχικοποίηση με 2 media players
+        const mediaContainer = document.getElementById('mediaContainer');
+        const addMediaButton = document.getElementById('addMediaButton');
+
+        // Προσθήκη 2 αρχικών players
+        mediaContainer.appendChild(createMediaPlayer(mediaContainer));
+        mediaContainer.appendChild(createMediaPlayer(mediaContainer));
+
+        // Προσθήκη λειτουργίας για νέους players
+        addMediaButton.addEventListener('click', () => {
+            mediaContainer.appendChild(createMediaPlayer(mediaContainer));
+        });
+    </script>
+</body>
+</html>

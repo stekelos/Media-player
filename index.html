@@ -3,135 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meditation Sound 2.0</title>
+    <title>Συμπίεση PDF με Επιλογές</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #e0f7fa;
-        }
-
-        .container {
             text-align: center;
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 50px;
+            background-color: #f0f0f0;
         }
-
         h1 {
-            color: #00695c;
-            font-size: 1.5em;
+            color: #333;
         }
-
-        p {
-            color: #004d40;
-            margin: 15px 0;
-        }
-
-        select, button {
+        input, select, button {
+            margin: 10px;
             padding: 10px;
-            margin: 5px;
-            border-radius: 5px;
-            border: 1px solid #00695c;
-            background-color: #b2dfdb;
-            color: #004d40;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
             cursor: pointer;
         }
-
         button:hover {
-            background-color: #00695c;
-            color: white;
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 20px;
+            color: #666;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Χαλαρωτικός Ήχος Διαλογισμού</h1>
-        <p>Επέλεξε συχνότητα και ξεκίνα (χρειάζονται ακουστικά):</p>
-        <select id="frequency">
-            <option value="432">432 Hz (Ηρεμία)</option>
-            <option value="4">4 Hz (Delta - Βαθύς Ύπνος)</option>
-            <option value="8">8 Hz (Theta - Χαλάρωση)</option>
-        </select>
-        <button onclick="startSound()">Έναρξη</button>
-        <button onclick="stopSound()">Παύση</button>
-        <p id="status">Ο ήχος είναι σε παύση.</p>
-    </div>
+    <h1>Συμπίεση PDF</h1>
+    <p>Ανέβασε ένα PDF και επίλεξε το επίπεδο συμπίεσης!</p>
+    <input type="file" id="pdfInput" accept=".pdf">
+    <br>
+    <select id="compressionLevel">
+        <option value="low">Χαμηλή Συμπίεση</option>
+        <option value="medium">Μεσαία Συμπίεση</option>
+        <option value="high">Υψηλή Συμπίεση</option>
+    </select>
+    <br>
+    <button onclick="compressPDF()">Συμπίεση PDF</button>
+    <p id="status">Κατάσταση: Περιμένω αρχείο...</p>
 
+    <!-- Φόρτωση της βιβλιοθήκης pdf-lib -->
+    <script src="https://unpkg.com/pdf-lib@1.17.0/dist/pdf-lib.min.js"></script>
     <script>
-        let audioContext;
-        let oscillatorLeft;
-        let oscillatorRight;
-        let gainNodeLeft;
-        let gainNodeRight;
-        let merger;
+        async function compressPDF() {
+            const fileInput = document.getElementById('pdfInput');
+            const compressionLevel = document.getElementById('compressionLevel').value;
+            const status = document.getElementById('status');
+            const file = fileInput.files[0];
 
-        function startSound() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Δημιουργία δύο ταλαντωτών για binaural beats
-                oscillatorLeft = audioContext.createOscillator();
-                oscillatorRight = audioContext.createOscillator();
-                gainNodeLeft = audioContext.createGain();
-                gainNodeRight = audioContext.createGain();
-                merger = audioContext.createChannelMerger(2);
+            if (!file) {
+                status.textContent = "Κατάσταση: Παρακαλώ ανέβασε ένα PDF πρώτα!";
+                return;
+            }
 
-                // Βασική συχνότητα (carrier) και διαφορά για binaural beats
-                const baseFreq = 100; // Ακουστή συχνότητα
-                const selectedFreq = parseFloat(document.getElementById('frequency').value);
+            status.textContent = "Κατάσταση: Συμπιέζεται...";
 
-                oscillatorLeft.type = 'sine';
-                oscillatorRight.type = 'sine';
+            try {
+                // Διάβασμα του PDF
+                const arrayBuffer = await file.arrayBuffer();
+                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
 
-                if (selectedFreq === 432) {
-                    // Καθαρός ήχος 432 Hz χωρίς binaural
-                    oscillatorLeft.frequency.value = 432;
-                    oscillatorRight.frequency.value = 432;
-                } else {
-                    // Binaural beats: διαφορά συχνοτήτων
-                    oscillatorLeft.frequency.value = baseFreq;
-                    oscillatorRight.frequency.value = baseFreq + selectedFreq;
+                // Επιλογές συμπίεσης
+                let compressedPdfBytes;
+                if (compressionLevel === "low") {
+                    // Χαμηλή συμπίεση: Απλή βελτιστοποίηση
+                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: true });
+                } else if (compressionLevel === "medium") {
+                    // Μεσαία συμπίεση: Χωρίς object streams
+                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: false });
+                } else if (compressionLevel === "high") {
+                    // Υψηλή συμπίεση: Αφαίρεση metadata και βελτιστοποίηση
+                    pdfDoc.removePageMetadata(); // Αφαίρεση metadata
+                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: false });
                 }
 
-                gainNodeLeft.gain.value = 0.1;
-                gainNodeRight.gain.value = 0.1;
+                // Δημιουργία και λήψη του συμπιεσμένου PDF
+                const blob = new Blob([compressedPdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `compressed_pdf_${compressionLevel}.pdf`;
+                link.click();
 
-                // Σύνδεση: αριστερός και δεξιός ήχος σε ξεχωριστά κανάλια
-                oscillatorLeft.connect(gainNodeLeft);
-                oscillatorRight.connect(gainNodeRight);
-                gainNodeLeft.connect(merger, 0, 0); // Αριστερό κανάλι
-                gainNodeRight.connect(merger, 0, 1); // Δεξί κανάλι
-                merger.connect(audioContext.destination);
-
-                oscillatorLeft.start();
-                oscillatorRight.start();
-
-                document.getElementById('status').innerText = 
-                    selectedFreq === 432 
-                    ? "Παίζει ήχος 432 Hz..."
-                    : `Παίζει binaural ${selectedFreq} Hz (100 Hz + ${100 + selectedFreq} Hz)...`;
+                status.textContent = `Κατάσταση: Η συμπίεση (${compressionLevel}) ολοκληρώθηκε! Το αρχείο κατέβηκε.`;
+            } catch (error) {
+                status.textContent = "Κατάσταση: Σφάλμα κατά τη συμπίεση: " + error.message;
             }
         }
-
-        function stopSound() {
-            if (audioContext && oscillatorLeft) {
-                oscillatorLeft.stop();
-                oscillatorRight.stop();
-                audioContext.close();
-                audioContext = null;
-                oscillatorLeft = null;
-                oscillatorRight = null;
-                document.getElementById('status').innerText = "Ο ήχος είναι σε παύση.";
-            }
-        }
-
-        window.onunload = stopSound;
     </script>
 </body>
 </html>

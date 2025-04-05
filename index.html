@@ -65,25 +65,33 @@
             status.textContent = "Κατάσταση: Συμπιέζεται...";
 
             try {
-                // Διάβασμα του PDF
                 const arrayBuffer = await file.arrayBuffer();
                 const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
 
-                // Επιλογές συμπίεσης
-                let compressedPdfBytes;
-                if (compressionLevel === "low") {
-                    // Χαμηλή συμπίεση: Απλή βελτιστοποίηση
-                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: true });
-                } else if (compressionLevel === "medium") {
-                    // Μεσαία συμπίεση: Χωρίς object streams
-                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: false });
-                } else if (compressionLevel === "high") {
-                    // Υψηλή συμπίεση: Αφαίρεση metadata και βελτιστοποίηση
-                    pdfDoc.removePageMetadata(); // Αφαίρεση metadata
-                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: false });
+                // Καθαρισμός περιττών δεδομένων
+                pdfDoc.removePageMetadata();
+
+                // Εξαγωγή σελίδων και επαναδημιουργία για βελτιστοποίηση
+                const pages = pdfDoc.getPages();
+                for (let i = 0; i < pages.length; i++) {
+                    const page = pages[i];
+                    // Αφαίρεση περιττών annotations ή layers αν υπάρχουν
+                    page.node.removeAnnots();
                 }
 
-                // Δημιουργία και λήψη του συμπιεσμένου PDF
+                let compressedPdfBytes;
+                if (compressionLevel === "low") {
+                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: true });
+                } else if (compressionLevel === "medium") {
+                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: false });
+                } else if (compressionLevel === "high") {
+                    // Μέγιστη βελτιστοποίηση
+                    compressedPdfBytes = await pdfDoc.save({
+                        useObjectStreams: false,
+                        updateFieldAppearances: false
+                    });
+                }
+
                 const blob = new Blob([compressedPdfBytes], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
@@ -91,9 +99,11 @@
                 link.download = `compressed_pdf_${compressionLevel}.pdf`;
                 link.click();
 
-                status.textContent = `Κατάσταση: Η συμπίεση (${compressionLevel}) ολοκληρώθηκε! Το αρχείο κατέβηκε.`;
+                const originalSize = (file.size / 1024 / 1024).toFixed(2);
+                const newSize = (compressedPdfBytes.length / 1024 / 1024).toFixed(2);
+                status.textContent = `Κατάσταση: Ολοκληρώθηκε! Αρχικό μέγεθος: ${originalSize} MB, Νέο μέγεθος: ${newSize} MB`;
             } catch (error) {
-                status.textContent = "Κατάσταση: Σφάλμα κατά τη συμπίεση: " + error.message;
+                status.textContent = "Κατάσταση: Σφάλμα: " + error.message;
             }
         }
     </script>

@@ -2,110 +2,313 @@
 <html lang="el">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Συμπίεση PDF με Επιλογές</title>
+    <title>Flash Card Game - Verbs</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
             background-color: #f0f0f0;
         }
-        h1 {
-            color: #333;
+        .card-container {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            perspective: 1000px;
         }
-        input, select, button {
-            margin: 10px;
-            padding: 10px;
-            font-size: 16px;
+        .card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            padding: 20px;
+            text-align: center;
+        }
+        .back {
+            transform: rotateY(180deg);
+        }
+        .buttons {
+            margin-top: 20px;
+            text-align: center;
         }
         button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
             background-color: #4CAF50;
             color: white;
             border: none;
-            cursor: pointer;
+            border-radius: 5px;
         }
         button:hover {
             background-color: #45a049;
         }
-        #status {
-            margin-top: 20px;
-            color: #666;
-        }
     </style>
 </head>
 <body>
-    <h1>Συμπίεση PDF</h1>
-    <p>Ανέβασε ένα PDF και επίλεξε το επίπεδο συμπίεσης!</p>
-    <input type="file" id="pdfInput" accept=".pdf">
-    <br>
-    <select id="compressionLevel">
-        <option value="low">Χαμηλή Συμπίεση</option>
-        <option value="medium">Μεσαία Συμπίεση</option>
-        <option value="high">Υψηλή Συμπίεση</option>
-    </select>
-    <br>
-    <button onclick="compressPDF()">Συμπίεση PDF</button>
-    <p id="status">Κατάσταση: Περιμένω αρχείο...</p>
+    <div class="card-container">
+        <div class="card" id="card">
+            <div class="front" id="front-text"></div>
+            <div class="back" id="back-text"></div>
+        </div>
+    </div>
+    <div class="buttons">
+        <button onclick="flipCard()">Show Answer</button>
+        <button onclick="nextCard()">Next Card</button>
+    </div>
 
-    <!-- Φόρτωση της βιβλιοθήκης pdf-lib -->
-    <script src="https://unpkg.com/pdf-lib@1.17.0/dist/pdf-lib.min.js"></script>
     <script>
-        async function compressPDF() {
-            const fileInput = document.getElementById('pdfInput');
-            const compressionLevel = document.getElementById('compressionLevel').value;
-            const status = document.getElementById('status');
-            const file = fileInput.files[0];
+        const rawData = `1. accept - αποδέχομαι
+2. achieve - πετυχαίνω
+3. add - προσθέτω
+4. admit - παραδέχομαι
+5. affect - επηρεάζω
+6. agree - συμφωνώ
+7. allow - επιτρέπω
+8. analyze - αναλύω
+9. announce - ανακοινώνω
+10. answer - απαντώ
+11. appear - εμφανίζομαι
+12. apply - εφαρμόζω
+13. argue - διαφωνώ
+14. arrange - κανονίζω
+15. arrive - φτάνω
+16. ask - ρωτάω
+17. assume - υποθέτω
+18. attack - επιτίθεμαι
+19. avoid - αποφεύγω
+20. become - γίνομαι
+21. begin - αρχίζω
+22. believe - πιστεύω
+23. belong - ανήκω
+24. break - σπάω
+25. bring - φέρνω
+26. build - χτίζω
+27. buy - αγοράζω
+28. call - καλώ
+29. can - μπορώ
+30. carry - κουβαλώ
+31. catch - πιάνω
+32. change - αλλάζω
+33. choose - επιλέγω
+34. clean - καθαρίζω
+35. climb - σκαρφαλώνω
+36. close - κλείνω
+37. come - έρχομαι
+38. compare - συγκρίνω
+39. complain - παραπονιέμαι
+40. complete - ολοκληρώνω
+41. confirm - επιβεβαιώνω
+42. connect - συνδέω
+43. consider - θεωρώ
+44. continue - συνεχίζω
+45. cook - μαγειρεύω
+46. copy - αντιγράφω
+47. correct - διορθώνω
+48. count - μετράω
+49. create - δημιουργώ
+50. cry - κλαίω
+51. cut - κόβω
+52. dance - χορεύω
+53. decide - αποφασίζω
+54. deliver - παραδίδω
+55. describe - περιγράφω
+56. design - σχεδιάζω
+57. destroy - καταστρέφω
+58. develop - αναπτύσσω
+59. die - πεθαίνω
+60. discover - ανακαλύπτω
+61. discuss - συζητώ
+62. divide - διαιρώ
+63. do - κάνω
+64. draw - σχεδιάζω
+65. dream - ονειρεύομαι
+66. drink - πίνω
+67. drive - οδηγώ
+68. eat - τρώω
+69. enable - επιτρέπω
+70. encourage - ενθαρρύνω
+71. enjoy - απολαμβάνω
+72. enter - εισέρχομαι
+73. establish - ιδρύω
+74. examine - εξετάζω
+75. exist - υπάρχω
+76. expect - αναμένω
+77. explain - εξηγώ
+78. explore - εξερευνώ
+79. fail - αποτυγχάνω
+80. fall - πέφτω
+81. feed - ταΐζω
+82. feel - νιώθω
+83. fight - μάχομαι
+84. find - βρίσκω
+85. finish - τελειώνω
+86. fix - διορθώνω
+87. fly - πετάω
+88. follow - ακολουθώ
+89. forget - ξεχνάω
+90. forgive - συγχωρώ
+91. form - σχηματίζω
+92. gain - κερδίζω
+93. get - παίρνω
+94. give - δίνω
+95. go - πηγαίνω
+96. grow - μεγαλώνω
+97. guess - μαντεύω
+98. happen - συμβαίνω
+99. hate - μισώ
+100. have - έχω
+101. hear - ακούω
+102. help - βοηθώ
+103. hide - κρύβω
+104. hit - χτυπώ
+105. hold - κρατώ
+106. hope - ελπίζω
+107. imagine - φαντάζομαι
+108. improve - βελτιώνω
+109. include - περιλαμβάνω
+110. increase - αυξάνω
+111. indicate - υποδεικνύω
+112. inform - ενημερώνω
+113. intend - σκοπεύω
+114. introduce - παρουσιάζω
+115. invite - προσκαλώ
+116. involve - εμπλέκω
+117. join - ενώνω
+118. jump - πηδάω
+119. keep - κρατώ
+120. kill - σκοτώνω
+121. know - ξέρω
+122. learn - μαθαίνω
+123. leave - φεύγω
+124. lend - δανείζω
+125. let - αφήνω
+126. lie - ξαπλώνω
+127. like - μου αρέσει
+128. listen - ακούω
+129. live - ζω
+130. look - κοιτάζω
+131. lose - χάνω
+132. love - αγαπώ
+133. make - φτιάχνω
+134. manage - διαχειρίζομαι
+135. mean - σημαίνω
+136. meet - συναντώ
+137. move - κινώ
+138. need - χρειάζομαι
+139. notice - παρατηρώ
+140. offer - προσφέρω
+141. open - ανοίγω
+142. organize - οργανώνω
+143. pay - πληρώνω
+144. play - παίζω
+145. prefer - προτιμώ
+146. prepare - προετοιμάζω
+147. present - παρουσιάζω
+148. produce - παράγω
+149. promise - υπόσχομαι
+150. protect - προστατεύω
+151. prove - αποδεικνύω
+152. provide - παρέχω
+153. publish - δημοσιεύω
+154. pull - τραβώ
+155. put - βάζω
+156. reach - φτάνω
+157. read - διαβάζω
+158. receive - λαμβάνω
+159. recognize - αναγνωρίζω
+160. reduce - μειώνω
+161. refer - αναφέρω
+162. refuse - αρνούμαι
+163. regard - θεωρώ
+164. relate - σχετίζομαι
+165. remain - παραμένω
+166. remember - θυμάμαι
+167. remove - αφαιρώ
+168. repeat - επαναλαμβάνω
+169. replace - αντικαθιστώ
+170. reply - απαντώ
+171. report - αναφέρω
+172. represent - αντιπροσωπεύω
+173. require - απαιτώ
+174. rest - ξεκουράζομαι
+175. return - επιστρέφω
+176. reveal - αποκαλύπτω
+177. rise - ανεβαίνω
+178. run - τρέχω
+179. save - σώζω
+180. say - λέω
+181. see - βλέπω
+182. seem - φαίνομαι
+183. sell - πουλώ
+184. send - στέλνω
+185. set - θέτω
+186. share - μοιράζομαι
+187. show - δείχνω
+188. sing - τραγουδώ
+189. sit - κάθομαι
+190. sleep - κοιμάμαι
+191. speak - μιλάω
+192. spend - ξοδεύω
+193. stand - στέκομαι
+194. start - ξεκινώ
+195. stay - μένω
+196. stop - σταματώ
+197. study - μελετώ
+198. suggest - προτείνω
+199. support - υποστηρίζω
+200. take - παίρνω`;
 
-            if (!file) {
-                status.textContent = "Κατάσταση: Παρακαλώ ανέβασε ένα PDF πρώτα!";
-                return;
-            }
+        const flashcards = rawData.split('\n').map(line => {
+            const [numberWord, translation] = line.split(' - ');
+            const [number, word] = numberWord.split('. ');
+            return { number, word, translation };
+        });
 
-            status.textContent = "Κατάσταση: Συμπιέζεται...";
+        let currentIndex = 0;
+        const card = document.getElementById('card');
+        const frontText = document.getElementById('front-text');
+        const backText = document.getElementById('back-text');
 
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-
-                // Καθαρισμός περιττών δεδομένων
-                pdfDoc.removePageMetadata();
-
-                // Εξαγωγή σελίδων και επαναδημιουργία για βελτιστοποίηση
-                const pages = pdfDoc.getPages();
-                for (let i = 0; i < pages.length; i++) {
-                    const page = pages[i];
-                    // Αφαίρεση περιττών annotations ή layers αν υπάρχουν
-                    page.node.removeAnnots();
-                }
-
-                let compressedPdfBytes;
-                if (compressionLevel === "low") {
-                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: true });
-                } else if (compressionLevel === "medium") {
-                    compressedPdfBytes = await pdfDoc.save({ useObjectStreams: false });
-                } else if (compressionLevel === "high") {
-                    // Μέγιστη βελτιστοποίηση
-                    compressedPdfBytes = await pdfDoc.save({
-                        useObjectStreams: false,
-                        updateFieldAppearances: false
-                    });
-                }
-
-                const blob = new Blob([compressedPdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `compressed_pdf_${compressionLevel}.pdf`;
-                link.click();
-
-                const originalSize = (file.size / 1024 / 1024).toFixed(2);
-                const newSize = (compressedPdfBytes.length / 1024 / 1024).toFixed(2);
-                status.textContent = `Κατάσταση: Ολοκληρώθηκε! Αρχικό μέγεθος: ${originalSize} MB, Νέο μέγεθος: ${newSize} MB`;
-            } catch (error) {
-                status.textContent = "Κατάσταση: Σφάλμα: " + error.message;
-            }
+        function showCard(index) {
+            const flashcard = flashcards[index];
+            frontText.textContent = `${flashcard.number}. ${flashcard.word}`;
+            backText.textContent = flashcard.translation;
+            card.classList.remove('flipped');
         }
+
+        function flipCard() {
+            card.classList.toggle('flipped');
+        }
+
+        function nextCard() {
+            currentIndex = (currentIndex + 1) % flashcards.length;
+            showCard(currentIndex);
+        }
+
+        // Show first card on load
+        showCard(currentIndex);
     </script>
 </body>
 </html>

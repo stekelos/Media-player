@@ -42,6 +42,9 @@
             color: white;
             cursor: pointer;
             transition: background-color 0.3s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         button:hover {
             background-color: #2980b9;
@@ -52,8 +55,25 @@
         .reset-btn:hover {
             background-color: #c0392b;
         }
+        .undo-btn {
+            background-color: #f39c12;
+        }
         .undo-btn:hover {
             background-color: #e67e22;
+        }
+        .add-food {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .add-food input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .add-food button {
+            padding: 10px 15px;
         }
     </style>
 </head>
@@ -61,50 +81,105 @@
     <div class="calorie-counter">
         <h1>Υπολογιστής Θερμίδων</h1>
         <div class="total">Σύνολο θερμίδων: <span id="totalCalories">0</span> kcal</div>
-        <div class="buttons">
-            <button onclick="addCalories('Νουντλς (50γρ)', 70)">Νουντλς (50γρ, 70 kcal)</button>
-            <button onclick="addCalories('Κοτόπουλο (50γρ)', 80)">Κοτόπουλο (50γρ, 80 kcal)</button>
-            <button onclick="addCalories('Μοσχάρι (50γρ)', 100)">Μοσχάρι (50γρ, 100 kcal)</button>
-            <button onclick="addCalories('Πατάτες Air Fryer (50γρ)', 40)">Πατάτες Air Fryer (50γρ, 40 kcal)</button>
-            <button onclick="addCalories('Γκούντα (22γρ)', 80)">Γκούντα (22γρ, 80 kcal)</button>
-            <button onclick="addCalories('Φυστικοβούτυρο (1 κ.γ.)', 32)">Φυστικοβούτυρο (1 κ.γ., 32 kcal)</button>
-            <button onclick="addCalories('Μπύρα (330ml)', 150)">Μπύρα (330ml, 150 kcal)</button>
-            <button onclick="addCalories('50 kcal', 50)">50 kcal</button>
-            <button onclick="addCalories('100 kcal', 100)">100 kcal</button>
+        
+        <div id="foodButtons" class="buttons">
+            <!-- Τα κουμπιά θα δημιουργηθούν αυτόματα από JavaScript -->
         </div>
+        
         <div class="action-buttons" style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="undo-btn" onclick="undoLastAddition()" style="flex: 1; background-color: #f39c12;">Αναίρεση</button>
+            <button class="undo-btn" onclick="undoLastAddition()" style="flex: 1;">Αναίρεση</button>
             <button class="reset-btn" onclick="resetCalories()" style="flex: 1;">Επαναφορά</button>
+        </div>
+        
+        <div class="add-food">
+            <input type="text" id="newFoodName" placeholder="Όνομα τροφής" required>
+            <input type="number" id="newFoodCalories" placeholder="Θερμίδες" required>
+            <button onclick="addNewFood()">Προσθήκη</button>
         </div>
     </div>
 
     <script>
+        // Βάση δεδομένων τροφίμων σε μορφή [τροφή, θερμίδες]
+        const initialFoodData = [
+            ['Νουντλς (50γρ)', 70],
+            ['Κοτόπουλο (50γρ)', 80],
+            ['Μοσχάρι (50γρ)', 100],
+            ['Πατάτες Air Fryer (50γρ)', 40],
+            ['Γκούντα (22γρ)', 80],
+            ['Φυστικοβούτυρο (1 κ.γ.)', 32],
+            ['Μπύρα (330ml)', 150],
+            ['50 kcal', 50],
+            ['100 kcal', 100],
+            ['10 kcal',10]
+        ];
+
         // Φόρτωση θερμίδων από το localStorage κατά την εκκίνηση
         let totalCalories = localStorage.getItem('totalCalories') ? parseInt(localStorage.getItem('totalCalories')) : 0;
         document.getElementById('totalCalories').textContent = totalCalories;
         
         // Ιστορικό προσθηκών για τη λειτουργία αναίρεσης
         let calorieHistory = localStorage.getItem('calorieHistory') ? JSON.parse(localStorage.getItem('calorieHistory')) : [];
+        
+        // Φόρτωση βάσης δεδομένων τροφίμων από το localStorage
+        let foodDatabase = localStorage.getItem('foodDatabase') 
+            ? JSON.parse(localStorage.getItem('foodDatabase')) 
+            : initialFoodData;
 
+        // Δημιουργία κουμπιών από τη βάση δεδομένων
+        function createFoodButtons() {
+            const buttonsContainer = document.getElementById('foodButtons');
+            buttonsContainer.innerHTML = '';
+            
+            foodDatabase.forEach(foodItem => {
+                const [foodName, calories] = foodItem;
+                const button = document.createElement('button');
+                button.textContent = `${foodName} (${calories} kcal)`;
+                button.onclick = () => addCalories(foodName, calories);
+                buttonsContainer.appendChild(button);
+            });
+        }
+
+        // Προσθήκη νέου τροφίμου στη βάση δεδομένων
+        function addNewFood() {
+            const nameInput = document.getElementById('newFoodName');
+            const caloriesInput = document.getElementById('newFoodCalories');
+            
+            const name = nameInput.value.trim();
+            const calories = parseInt(caloriesInput.value);
+            
+            if (name && !isNaN(calories) && calories > 0) {
+                foodDatabase.push([name, calories]);
+                
+                // Αποθήκευση της ενημερωμένης βάσης δεδομένων
+                localStorage.setItem('foodDatabase', JSON.stringify(foodDatabase));
+                
+                // Επαναδημιουργία των κουμπιών
+                createFoodButtons();
+                
+                // Εκκαθάριση των πεδίων εισαγωγής
+                nameInput.value = '';
+                caloriesInput.value = '';
+            } else {
+                alert('Παρακαλώ εισάγετε έγκυρα δεδομένα (όνομα και θετικό αριθμό θερμίδων)');
+            }
+        }
+
+        // Λειτουργίες υπολογισμού θερμίδων
         function addCalories(item, calories) {
             totalCalories += calories;
             document.getElementById('totalCalories').textContent = totalCalories;
             
-            // Προσθήκη στο ιστορικό
-            calorieHistory.push({ item: item, calories: calories });
+            calorieHistory.push({ item, calories });
             
-            // Αποθήκευση στο localStorage
             localStorage.setItem('totalCalories', totalCalories);
             localStorage.setItem('calorieHistory', JSON.stringify(calorieHistory));
         }
 
         function undoLastAddition() {
             if (calorieHistory.length > 0) {
-                // Αφαίρεση της τελευταίας προσθήκης από το ιστορικό
                 const lastAddition = calorieHistory.pop();
                 totalCalories -= lastAddition.calories;
                 
-                // Ενημέρωση του UI και του localStorage
                 document.getElementById('totalCalories').textContent = totalCalories;
                 localStorage.setItem('totalCalories', totalCalories);
                 localStorage.setItem('calorieHistory', JSON.stringify(calorieHistory));
@@ -116,10 +191,29 @@
             calorieHistory = [];
             document.getElementById('totalCalories').textContent = totalCalories;
             
-            // Επαναφορά του localStorage
             localStorage.setItem('totalCalories', totalCalories);
             localStorage.setItem('calorieHistory', JSON.stringify(calorieHistory));
         }
+
+        // Επαναφορά αρχικής βάσης δεδομένων (για δοκιμαστικούς σκοπούς)
+        function resetFoodDatabase() {
+            if (confirm('Θέλετε να επαναφέρετε την αρχική βάση δεδομένων τροφίμων;')) {
+                foodDatabase = [...initialFoodData];
+                localStorage.setItem('foodDatabase', JSON.stringify(foodDatabase));
+                createFoodButtons();
+            }
+        }
+
+        // Αρχικοποίηση της εφαρμογής κατά την εκκίνηση
+        createFoodButtons();
+
+        // Προσθήκη κουμπιού επαναφοράς βάσης δεδομένων (προαιρετικό)
+        const resetDbBtn = document.createElement('button');
+        resetDbBtn.textContent = 'Επαναφορά Αρχικής Βάσης';
+        resetDbBtn.className = 'reset-btn';
+        resetDbBtn.style.marginTop = '10px';
+        resetDbBtn.onclick = resetFoodDatabase;
+        document.querySelector('.calorie-counter').appendChild(resetDbBtn);
     </script>
 </body>
 </html>
